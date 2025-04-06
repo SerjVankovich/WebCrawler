@@ -41,7 +41,7 @@ python main.py [options]
 ### Available Arguments
 
 - `--url <URL>`: The starting URL for the web crawler.
-- `--map-pages <DEPTH>`: The maximum pages to crawl (default is 100).
+- `--max-pages <DEPTH>`: The maximum pages to crawl (default is 100).
 - `--concurrency <NUMBER>`: The number of threads to use for crawling (default is 10).
 
 ### Example Usage
@@ -70,16 +70,16 @@ Make sure to activate your virtual environment before running the script.
    docker-compose up --build
    ```
 
-   # This configuration will create two containers:
-   # 1. A Python container with all the necessary dependencies installed.
-   # 2. A PostgreSQL container that serves as the database.
+   **This configuration will create two containers:**
+   1. A Python container with all the necessary dependencies installed.
+   2. A PostgreSQL container that serves as the database.
 
    **Access Docker Container Shell**:
       ```bash
       docker exec -it crawler bash
       ```
 
-   This command allows you to:
+   **This command allows you to**:
    - Connect to the running crawler container
    - Access an interactive bash shell
    - Execute commands directly inside the container

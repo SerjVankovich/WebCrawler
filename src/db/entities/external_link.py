@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, Text
 
 from src.db.base import Base
 
+
 class ExternalDomain(Base):
     __tablename__ = 'external_domains'
 

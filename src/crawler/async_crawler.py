@@ -7,6 +7,7 @@ from urllib.parse import urljoin, urlparse
 import logging
 from tqdm.asyncio import tqdm
 
+
 class AsyncCrawler:
     def __init__(self, base_url, max_pages=100, concurrency=10):
         self.base_url = base_url
@@ -20,11 +21,11 @@ class AsyncCrawler:
         self.lock = asyncio.Lock()  # 🔒
 
         self.total_links = 0
-        self.internal_links = {} 
+        self.internal_links = {}
         self.external_links = {}
         self.broken_pages = {}
         self.unique_resources = set()
-        
+
         # Логирование в файл
         logging.basicConfig(
             filename="crawler.log",
@@ -38,7 +39,7 @@ class AsyncCrawler:
     def is_internal(self, url):
         netloc = urlparse(url).netloc
         return netloc == "" or netloc == self.domain
-    
+
     def random_user_agent(self):
         agents = [
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
@@ -52,7 +53,7 @@ class AsyncCrawler:
     async def fetch(self, session: ClientSession, url: str):
         try:
             # 🤫 Sleep to be polite
-            #await asyncio.sleep(random.uniform(0.5, 1.5))
+            # await asyncio.sleep(random.uniform(0.5, 1.5))
 
             headers = {
                 "User-Agent": self.random_user_agent()
@@ -76,8 +77,7 @@ class AsyncCrawler:
         """Проверка на валидность ссылки (не mailto, tel и т.д.)"""
         invalid_schemes = ['mailto:', 'tel:', 'javascript:']
         return not any(url.lower().startswith(scheme) for scheme in invalid_schemes)
-    
-    
+
     async def handle_url(self, session: ClientSession, progress):
         while not self.to_visit.empty():
             url = await self.to_visit.get()
@@ -118,17 +118,19 @@ class AsyncCrawler:
     async def crawl(self):
         async with aiohttp.ClientSession() as session:
             with tqdm(total=self.max_pages, desc="Crawling pages") as progress:
-                tasks = [self.handle_url(session, progress) for _ in range(self.concurrency)]
+                tasks = [self.handle_url(session, progress)
+                         for _ in range(self.concurrency)]
                 await asyncio.gather(*tasks)
-                
+
     def save_links(self):
         """Сохранение всех внутренних ссылок и внешних доменов"""
         # Сохраняем внутренние ссылки в файл
         with open('internal_links.txt', 'w') as file:
             for link, count in self.internal_links.items():
                 file.write(f"{link} - {count}\n")
-        self.logger.info(f"Saved {len(self.internal_links)} internal links to internal_links.txt")
-        
+        self.logger.info(
+            f"Saved {len(self.internal_links)} internal links to internal_links.txt")
+
         external_resources = {}
         for link, count in self.external_links.items():
             domain = urlparse(link).netloc
@@ -140,16 +142,17 @@ class AsyncCrawler:
         with open('external_domains.txt', 'w') as file:
             for domain, count in external_resources.items():
                 file.write(f"{domain} - {count}\n")
-        self.logger.info(f"Saved {len(external_resources)} external domains to external_domains.txt")
-        
+        self.logger.info(
+            f"Saved {len(external_resources)} external domains to external_domains.txt")
+
     def get_internalLinks(self):
         """Получение внутренних ссылок"""
         return self.internal_links
-    
+
     def get_externalLinks(self):
         """Получение внешних ссылок"""
         return self.external_links
-    
+
     def get_externalDomains(self):
         """Получение внешних доменов"""
         external_domains = {}
@@ -159,7 +162,6 @@ class AsyncCrawler:
                 external_domains[domain] = 0
             external_domains[domain] += count
         return external_domains
-
 
     def report(self):
         print("Общее количество страниц:", len(self.visited))

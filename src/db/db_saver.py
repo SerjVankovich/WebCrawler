@@ -17,9 +17,10 @@ class DBSaver():
         )
 
         self.logger = logging.getLogger("db_saver")
-        
+
         self.engine = create_engine(db_url)
-        Base.metadata.create_all(self.engine)  # Создание таблиц, если их ещё нет
+        # Создание таблиц, если их ещё нет
+        Base.metadata.create_all(self.engine)
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
 
@@ -28,7 +29,8 @@ class DBSaver():
         # Сохраняем внутренние ссылки в таблицу
         for link, count in internal_links.items():
             # Проверяем, существует ли ссылка
-            existing_link = self.session.query(InternalLink).filter_by(url=link).first()
+            existing_link = self.session.query(
+                InternalLink).filter_by(url=link).first()
             if existing_link:
                 existing_link.count = count
             else:
@@ -38,7 +40,8 @@ class DBSaver():
         # Сохраняем внешние домены в таблицу
         for domain, count in external_links.items():
             # Проверяем, существует ли домен
-            existing_domain = self.session.query(ExternalDomain).filter_by(domain=domain).first()
+            existing_domain = self.session.query(
+                ExternalDomain).filter_by(domain=domain).first()
             if existing_domain:
                 existing_domain.count = count
             else:
@@ -46,10 +49,10 @@ class DBSaver():
                 self.session.add(new_domain)
 
         self.session.commit()
-        self.logger.info(f"Saved {len(internal_links)} internal links and {len(external_links)} external domains to the database")
-    
+        self.logger.info(
+            f"Saved {len(internal_links)} internal links and {len(external_links)} external domains to the database")
+
     def close(self):
         """Закрытие сессии базы данных"""
         self.session.close()
         self.logger.info("Database session closed")
-   

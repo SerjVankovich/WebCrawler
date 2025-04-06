@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, Text
 
 from src.db.base import Base
 
+
 class InternalLink(Base):
     __tablename__ = 'internal_links'
 
