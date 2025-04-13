@@ -63,6 +63,20 @@ Ensure the `.env` file is properly configured before running the script.
 
 Make sure to activate your virtual environment before running the script. 
 
+## Tests
+
+To run tests, execute folowing command:
+```bash
+pytest tests/test_crawler.py -v
+```
+
+This command will run all the tests in the `tests/test_crawler.py` file and flag `-v` for verbose output.
+
+To generate report in html format, execute following command:
+```bash
+pytest tests/test_crawler.py -v --html=report.html --self-contained-html
+```
+
 ## Docker Support
 
 **Development with Docker Compose**:
