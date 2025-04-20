@@ -52,9 +52,6 @@ class AsyncCrawler:
 
     async def fetch(self, session: ClientSession, url: str):
         try:
-            # 🤫 Sleep to be polite
-            # await asyncio.sleep(random.uniform(0.5, 1.5))
-
             headers = {
                 "User-Agent": self.random_user_agent()
             }
