@@ -31,3 +31,7 @@ htmlcov/
 .cache
 coverage.xml
 *.cover
+
+#Another
+*.log
+*.html

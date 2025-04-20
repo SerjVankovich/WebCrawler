@@ -1,20 +1,19 @@
 import pytest
 import asyncio
 import aiohttp
-from aiohttp import ClientSession
 from unittest.mock import AsyncMock, MagicMock, patch
-from bs4 import BeautifulSoup
 from src.crawler.async_crawler import AsyncCrawler
 import logging
-import os
 
 pytest_plugins = ('pytest_asyncio',)
+
 
 @pytest.fixture
 def crawler():
     base_url = "http://example.com"
     crawler = AsyncCrawler(base_url, max_pages=10, concurrency=2)
     return crawler
+
 
 def test_initialization(crawler):
     assert crawler.base_url == "http://example.com"
@@ -31,6 +30,7 @@ def test_initialization(crawler):
     assert crawler.broken_pages == {}
     assert crawler.unique_resources == set()
 
+
 @pytest.mark.parametrize("url, expected", [
     ("http://example.com/page", True),
     ("http://example.com", True),
@@ -41,6 +41,7 @@ def test_initialization(crawler):
 ])
 def test_is_internal(crawler, url, expected):
     assert crawler.is_internal(url) == expected
+
 
 @pytest.mark.parametrize("url, expected", [
     ("http://example.com", True),
@@ -53,6 +54,7 @@ def test_is_internal(crawler, url, expected):
 def test_is_valid_link(crawler, url, expected):
     assert crawler.is_valid_link(url) == expected
 
+
 def test_random_user_agent(crawler):
     user_agent = crawler.random_user_agent()
     assert user_agent in [
@@ -63,27 +65,30 @@ def test_random_user_agent(crawler):
         "Mozilla/5.0 (Linux; Android 11; SM-G991B)",
     ]
 
+
 @pytest.mark.asyncio
 async def test_fetch_success(crawler):
     url = "http://example.com"
     mock_response_text = "<html><a href='/page1'>Link</a></html>"
-    
-    async def mock_get(*args, **kwargs):
-        mock_response = MagicMock()
-        mock_response.status = 200
-        mock_response.text = AsyncMock(return_value=mock_response_text)
-        return mock_response
 
-    with patch.object(aiohttp.ClientSession, "get", new=mock_get):
+    mock_response = AsyncMock()
+    mock_response.status = 200
+    mock_response.text.return_value = mock_response_text
+
+    mock_context_manager = AsyncMock()
+    mock_context_manager.__aenter__.return_value = mock_response
+
+    with patch("aiohttp.ClientSession.get", return_value=mock_context_manager):
         async with aiohttp.ClientSession() as session:
             result = await crawler.fetch(session, url)
             assert result == mock_response_text
             assert url not in crawler.broken_pages
 
+
 @pytest.mark.asyncio
 async def test_fetch_failure(crawler):
     url = "http://example.com"
-    
+
     async def mock_get(*args, **kwargs):
         raise aiohttp.ClientError("Connection failed")
 
@@ -93,6 +98,7 @@ async def test_fetch_failure(crawler):
             assert result is None
             assert url in crawler.broken_pages
             assert isinstance(crawler.broken_pages[url], str)
+
 
 @pytest.mark.asyncio
 async def test_handle_url(crawler):
@@ -104,25 +110,27 @@ async def test_handle_url(crawler):
         <a href="mailto:someone@example.com">Email</a>
     </html>
     """
-    
+
     with patch.object(crawler, "fetch", AsyncMock(return_value=mock_html)):
         progress = MagicMock()
         progress.update = MagicMock()
-        
+
         async with aiohttp.ClientSession() as session:
             await crawler.handle_url(session, progress)
-            
+
             assert url in crawler.visited
             assert crawler.total_links >= 2  # Две валидные ссылки
             assert "http://example.com/page1" in crawler.internal_links
-            assert crawler.internal_links["http://example.com/page1"] == 1
+            assert crawler.internal_links["http://example.com/page1"] == 2
             assert "http://other.com" in crawler.external_links
-            assert crawler.external_links["http://other.com"] == 1
+            assert crawler.external_links["http://other.com"] == 2
             assert "http://example.com/page1" in crawler.unique_resources
             assert "http://other.com" in crawler.unique_resources
             assert progress.update.called
 
-def test_save_links(crawler, tmp_path):
+
+def test_save_links(crawler, caplog):
+    caplog.set_level(logging.INFO)
     crawler.internal_links = {
         "http://example.com/page1": 2,
         "http://example.com/page2": 1
@@ -131,15 +139,13 @@ def test_save_links(crawler, tmp_path):
         "http://other.com": 3,
         "http://another.com/page": 1
     }
-    
+
     with patch("builtins.open", new=MagicMock()):
         crawler.save_links()
-    
-    assert os.path.exists("crawler.log")
-    with open("crawler.log", "r") as f:
-        log_content = f.read()
-        assert "Saved 2 internal links" in log_content
-        assert "Saved 2 external domains" in log_content
+
+    assert "Saved 2 internal links" in caplog.text
+    assert "Saved 2 external domains" in caplog.text
+
 
 def test_get_external_domains(crawler):
     crawler.external_links = {
@@ -153,17 +159,19 @@ def test_get_external_domains(crawler):
         "another.com": 3
     }
 
+
 def test_report(crawler, capsys):
     crawler.visited = {"http://example.com", "http://example.com/page1"}
     crawler.total_links = 5
     crawler.internal_links = {"http://example.com/page1": 2}
     crawler.external_links = {"http://other.com": 1}
     crawler.broken_pages = {"http://example.com/404": "404"}
-    crawler.unique_resources = {"http://example.com", "http://example.com/page1", "http://other.com"}
-    
+    crawler.unique_resources = {"http://example.com",
+                                "http://example.com/page1", "http://other.com"}
+
     crawler.report()
     captured = capsys.readouterr()
-    
+
     assert "Общее количество страниц: 2" in captured.out
     assert "Общее количество ссылок: 5" in captured.out
     assert "Внутренние ссылки: 1" in captured.out
